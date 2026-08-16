@@ -5,3 +5,7 @@ dist/
 # Local agent instructions
 CLAUDE.md
 AGENTS.md
+
+# Local tooling
+.claude/
+.gitnexus/
