@@ -1,0 +1,14 @@
+{
+  "name": "weave-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Weave sync server — y-websocket relay",
+  "scripts": {
+    "dev": "node ws/index.js"
+  },
+  "dependencies": {
+    "@y/websocket-server": "^0.1.5",
+    "ws": "^8.21.0"
+  }
+}
