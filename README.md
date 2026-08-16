@@ -1,4 +1,4 @@
-# Confluo (working name) — Real-Time Collaborative Text Editor with Intent-Preservation Assistance
+# Weave — Real-Time Collaborative Text Editor with Intent-Preservation Assistance
 
 A real-time collaborative text editor exploring a problem that CRDT-based
 systems don't actually solve on their own: when concurrent edits touch
