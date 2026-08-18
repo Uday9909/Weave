@@ -1,23 +1,21 @@
 import { useEffect, useRef } from 'react'
 import * as Y from 'yjs'
-import { WebsocketProvider } from 'y-websocket'
 import { yCollab } from 'y-codemirror.next'
 import { EditorState } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
 import { basicSetup } from 'codemirror'
-
-const SERVER_URL = 'ws://localhost:1234'
-// Room id comes from ?room=<id>; all tabs sharing it sync to the same document.
-const ROOM = new URLSearchParams(window.location.search).get('room') ?? 'weave-demo'
+import { doc, provider } from '../lib/collab'
+import { identity } from '../lib/user'
 
 export default function Editor() {
   const hostRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const doc = new Y.Doc()
-    const provider = new WebsocketProvider(SERVER_URL, ROOM, doc)
     const type = doc.getText('content')
     const undoManager = new Y.UndoManager(type)
+
+    // Advertise who we are; y-codemirror.next renders remote cursors with these.
+    provider.awareness.setLocalStateField('user', identity)
 
     const view = new EditorView({
       parent: hostRef.current!,
@@ -33,8 +31,7 @@ export default function Editor() {
 
     return () => {
       view.destroy()
-      provider.destroy()
-      doc.destroy()
+      provider.awareness.setLocalState(null) // leave the room cleanly
     }
   }, [])
 
