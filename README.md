@@ -91,9 +91,9 @@ end to end.
 
 ## Status
 
-Phase 1 (sync skeleton) live. Two browser tabs on the same room show live
-edits. Presence, compaction, and the intent-flagging layer are not yet
-built.
+Phase 1 (sync skeleton) and Phase 2 (presence) live. Two browser tabs on
+the same room show live edits, colored cursors with names, and a who's-online
+strip. Compaction and the intent-flagging layer are not yet built.
 
 ## Local development
 
