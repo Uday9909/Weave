@@ -86,14 +86,18 @@ end to end.
 
 - Concurrent editors tested at: TBD
 - Sync latency (local network, measured): TBD
-- Document size with vs. without compaction, over N edits: TBD
+- Document size with vs. without compaction: 3068 → 2268 bytes (−26%) after
+  20 edit+delete cycles (measured by `server/compaction/selfcheck.mjs`). The
+  compaction job also logs per-room metrics to `server/compaction/metrics.log`
+  over time, and reaps rooms idle past `IDLE_TIMEOUT_MIN`.
 - Intent-flagging precision/recall on the scripted test scenario set: TBD
 
 ## Status
 
-Phase 1 (sync skeleton) and Phase 2 (presence) live. Two browser tabs on
-the same room show live edits, colored cursors with names, and a who's-online
-strip. Compaction and the intent-flagging layer are not yet built.
+Phase 1 (sync skeleton), Phase 2 (presence), and Phase 3 (compaction) live.
+Two browser tabs on the same room show live edits, colored cursors with
+names, and a who's-online strip. A scheduled server job compacts tombstone
+growth and reaps idle rooms; the intent-flagging layer is not yet built.
 
 ## Local development
 
