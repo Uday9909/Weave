@@ -9,6 +9,10 @@
   },
   "dependencies": {
     "@y/websocket-server": "^0.1.5",
-    "ws": "^8.21.0"
+    "ws": "^8.21.0",
+    "yjs": "14.0.0-7"
+  },
+  "overrides": {
+    "@y/protocols": "1.0.6-1"
   }
 }
