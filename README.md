@@ -94,16 +94,23 @@ end to end.
 
 ## Status
 
-Phase 1 (sync skeleton), Phase 2 (presence), and Phase 3 (compaction) live.
-Two browser tabs on the same room show live edits, colored cursors with
-names, and a who's-online strip. A scheduled server job compacts tombstone
-growth and reaps idle rooms; the intent-flagging layer is not yet built.
+Phase 1 (sync skeleton), Phase 2 (presence), Phase 3 (compaction), and Phase 4
+(intent flagging) live. Two browser tabs on the same room show live edits,
+colored cursors with names, and a who's-online strip. When two users edit the
+same spot concurrently, a server-side pipeline (collision tracker → heuristic
+gate → Gemini judge) flags likely-mangled merges: a banner appears and the
+flagged range is underlined. A scheduled server job compacts tombstone growth
+and reaps idle rooms. The LLM judge needs a Gemini key in `server/.env`
+(`GEMINI_API_KEY`); without it the pipeline runs heuristic-only and flags less,
+because Yjs concatenates concurrent same-position inserts rather than
+interleaving them (so the ambiguous→LLM path carries most of the signal).
 
 ## Local development
 
 ```bash
 # server
 cd server && npm install && npm run dev
+# (optional: cp server/.env.example server/.env and set GEMINI_API_KEY for the LLM judge)
 
 # client
 cd client && npm install && npm run dev
