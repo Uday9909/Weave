@@ -6,6 +6,9 @@ import { EditorView } from '@codemirror/view'
 import { basicSetup } from 'codemirror'
 import { doc, provider } from '../lib/collab'
 import { identity } from '../lib/user'
+import { flagField, syncFlags } from '../flags/flagPlugin'
+import { flagsStore } from '../flags/flagsStore'
+import { editorView } from '../lib/editorView'
 
 export default function Editor() {
   const hostRef = useRef<HTMLDivElement>(null)
@@ -25,11 +28,18 @@ export default function Editor() {
           // Note: y-codemirror.next's current signature is yCollab(ytext, awareness, { undoManager })
           // — the older (undoManager, ytext, awareness) ordering no longer works.
           yCollab(type, provider.awareness, { undoManager }),
+          flagField,
         ],
       }),
     })
+    editorView.set(view)
+    syncFlags(view, flagsStore.visible())
+    if (import.meta.env.DEV) (window as any).__weave = { view, doc, provider }
+    const unsub = flagsStore.subscribe(() => syncFlags(view, flagsStore.visible()))
 
     return () => {
+      unsub()
+      editorView.set(null)
       view.destroy()
       provider.awareness.setLocalState(null) // leave the room cleanly
     }
