@@ -2,6 +2,10 @@ node_modules/
 dist/
 *.log
 
+# Local secrets
+server/.env
+.env
+
 # Local agent instructions
 CLAUDE.md
 AGENTS.md

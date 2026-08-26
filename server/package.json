@@ -5,7 +5,8 @@
   "type": "module",
   "description": "Weave sync server — y-websocket relay",
   "scripts": {
-    "dev": "node ws/index.js"
+    "dev": "node ws/index.js",
+    "intent": "node intent/selfcheck.mjs"
   },
   "dependencies": {
     "@y/websocket-server": "^0.1.5",
