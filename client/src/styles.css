@@ -81,3 +81,55 @@ body {
   height: 100%;
   font-size: 15px;
 }
+
+/* Intent-mismatch flag highlight + banner */
+.cm-flag {
+  text-decoration: underline wavy rgba(230, 126, 34, 0.9);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+  background: rgba(230, 126, 34, 0.12);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.flag-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  background: #fff7ed;
+}
+
+.flag-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.flag-body {
+  flex: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  padding: 2px 0;
+}
+
+.flag-conf {
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.flag-dismiss {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 2px 6px;
+}
