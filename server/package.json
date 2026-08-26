@@ -6,7 +6,9 @@
   "description": "Weave sync server — y-websocket relay",
   "scripts": {
     "dev": "node ws/index.js",
-    "intent": "node intent/selfcheck.mjs"
+    "intent": "node intent/selfcheck.mjs",
+    "eval": "node intent/eval.mjs",
+    "eval:llm": "node intent/eval.mjs --llm"
   },
   "dependencies": {
     "@y/websocket-server": "^0.1.5",
