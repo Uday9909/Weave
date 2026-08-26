@@ -38,7 +38,7 @@ export function startIntentPipeline(doc, room, emit) {
       }
       if (!flagged) continue
       lastFlagAt = Date.now()
-      emit({ id: ++flagSeq, room, region: { from: region.from, to: region.to }, confidence, reason })
+      emit({ id: ++flagSeq, room, region: { from: region.from, to: region.to }, confidence, reason, source: verdict === 'mangled' ? 'heuristic' : 'llm' })
     }
   })
 }
