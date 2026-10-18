@@ -1,6 +1,10 @@
 node_modules/
 dist/
 *.log
+.DS_Store
+
+# Persisted room snapshots (local dev)
+server/.data/
 
 # Local secrets
 server/.env
