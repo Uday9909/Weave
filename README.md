@@ -84,8 +84,13 @@ end to end.
 (Filled in as the project progresses — placeholders below are what
 *will* be measured, not fabricated numbers.)
 
-- Concurrent editors tested at: TBD
-- Sync latency (local network, measured): TBD
+- Concurrent editors tested at: 2, 10, and 25 editors, all inserting at the
+  same position in the same tick. Every run converged to identical text, in
+  p50 **0.43 ms / 2.01 ms / 15.12 ms** respectively (3 rounds each; measured
+  on localhost by `client/bench/sync.mjs`).
+- Sync latency (local network, measured): **p50 0.07 ms, p95 0.51 ms, max
+  2.26 ms** over 50 sequential edits between two editors (`npm run bench`
+  from `client/`).
 - Document size with vs. without compaction: 3068 → 2268 bytes (−26%) after
   20 edit+delete cycles (measured by `server/compaction/selfcheck.mjs`). The
   compaction job also logs per-room metrics to `server/compaction/metrics.log`
