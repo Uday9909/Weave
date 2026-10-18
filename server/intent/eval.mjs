@@ -14,7 +14,8 @@ try { process.loadEnvFile(new URL('../.env', import.meta.url)) } catch { /* no .
 
 const useLlm = process.argv.includes('--llm')
 if (!useLlm) delete process.env.GEMINI_API_KEY
-const SETTLE_MS = useLlm ? 8000 : 300 // Gemini judge ~2-4s per call; heuristic settles on the next tick
+// Heuristic waits out the tracker's 350 ms burst buffer; Gemini adds ~2-4 s per call.
+const SETTLE_MS = useLlm ? 8000 : 700
 
 const SLEEP = (ms) => new Promise(r => setTimeout(r, ms))
 
@@ -95,22 +96,12 @@ const SCENARIOS = [
   },
 ]
 
-// What the heuristic alone would say on this scenario's actual tracked edits —
-// proves the collision tracker saw the collision and shows why no flag fired
-// (ambiguous regions only flag via the LLM).
-function heuristicVerdict(edits) {
-  if (!edits.length) return 'no-edits'
-  for (let i = 0; i < edits.length; i++) {
-    for (let j = i + 1; j < edits.length; j++) {
-      const a = edits[i], b = edits[j]
-      if (a.client === b.client) continue
-      if (Math.min(a.to, b.to) - Math.max(a.from, b.from) < -2) continue
-      const from = Math.min(a.from, b.from), to = Math.max(a.to, b.to)
-      const region = edits.filter(e => e.to >= from && e.from <= to)
-      return interleaveVerdict(region).verdict
-    }
-  }
-  return 'no-collision'
+// What the heuristic alone would say on this scenario's actual clusters —
+// proves the tracker saw the collision and shows why no flag fired
+// (ambiguous clusters only flag via the LLM).
+function heuristicVerdict(clusters) {
+  if (!clusters.length) return 'no-collision'
+  return interleaveVerdict(clusters[0].edits).verdict
 }
 
 // Replay one scenario through the real pipeline (fresh doc + pipeline per
@@ -142,14 +133,14 @@ async function runScenario({ baseline, ops }) {
   }
   await SLEEP(SETTLE_MS)
   const edits = tracker.recentEdits()
-  return { emits, edits, editCount: edits.length }
+  return { emits, edits, clusters: tracker.recentClusters(), editCount: edits.length }
 }
 
 const results = []
 for (const s of SCENARIOS) {
-  const { emits, edits, editCount } = await runScenario(s)
+  const { emits, edits, clusters, editCount } = await runScenario(s)
   if (s.label === 'flag' && editCount === 0) console.warn(`[eval] WARN ${s.name}: zero edits recorded — scenario likely misconstructed`)
-  results.push({ ...s, emits, edits })
+  results.push({ ...s, emits, edits, clusters })
 }
 
 // --- confusion matrix (label vs pipeline decision) ---
@@ -163,7 +154,7 @@ for (const r of results) {
   else if (r.label === 'noflag' && flagged) fp++
   else tn++
   console.log(
-    `${r.name.padEnd(30)} ${r.label.padEnd(7)} ${heuristicVerdict(r.edits).padEnd(11)} ` +
+    `${r.name.padEnd(30)} ${r.label.padEnd(7)} ${heuristicVerdict(r.clusters).padEnd(11)} ` +
     `${(flagged ? 'FLAG  ' : '—').padEnd(7)} ${(e ? String(e.confidence).padEnd(5) : '').padEnd(7)} ` +
     `${(e ? e.source : '').padEnd(12)} ${r.note}`)
 }

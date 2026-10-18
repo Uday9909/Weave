@@ -1,14 +1,39 @@
 // Collision tracker: observes a room's Y.Text and records per-client insert
-// ranges, attributed to the transaction origin (the sending connection). Emits
-// candidate regions where two clients' edits overlap — the raw merge signal,
-// since Yjs has no explicit "merge event".
+// ranges, attributed to the transaction origin (the sending connection).
+// Edits are buffered into a burst and clustered by proximity; a cluster where
+// different clients' edits touch is the unit the heuristic judges.
+//
+// Clustering (not pairwise regions) is what makes the signal visible: Yjs
+// concatenates concurrent inserts, so two typing streams in the same slot
+// collapse to adjacent blocky runs. Only the cluster carries the fact that
+// several clients were writing into one nearby region at the same time.
 const TEXT_TYPE = 'content'
 const WINDOW_MS = 8000 // edits older than this are settled, not candidates
-const TOUCH_GAP = 2 // ranges this close (in chars) count as touching
+const BUFFER_MS = 350 // judge a burst once typing pauses
+const CLUSTER_GAP = 2 // ranges this close (in chars) join one cluster
 
-export function createCollisionTracker(doc, onCandidate) {
+/** Group edits whose ranges touch into clusters involving 2+ clients. */
+export function clusterEdits(edits) {
+  const sorted = [...edits].sort((a, b) => a.from - b.from || a.to - b.to)
+  const clusters = []
+  for (const edit of sorted) {
+    const last = clusters[clusters.length - 1]
+    if (last && edit.from <= last.to + CLUSTER_GAP) {
+      last.to = Math.max(last.to, edit.to)
+      last.edits.push(edit)
+    } else {
+      clusters.push({ from: edit.from, to: edit.to, edits: [edit] })
+    }
+  }
+  return clusters.filter(c => new Set(c.edits.map(e => e.client)).size >= 2)
+}
+
+export function createCollisionTracker(doc, onClusters) {
   const ytext = doc.getText(TEXT_TYPE)
   let edits = []
+  let pending = []
+  let lastClusters = []
+  let flushTimer = null
   let editSeq = 0
   let labelSeq = 0
   const labels = new Map()
@@ -23,36 +48,18 @@ export function createCollisionTracker(doc, onCandidate) {
     edits = edits.filter(e => now - e.ts < WINDOW_MS)
   }
 
-  // Surface each overlapping pair once (until it ages out) so active typing
-  // doesn't re-assess the same collision on every keystroke.
-  const seen = new Set()
-  const pruneSeen = () => {
-    const live = new Set(edits.map(e => e.id))
-    for (const k of seen) {
-      if (!k.split(':').some(id => live.has(Number(id)))) seen.delete(k)
-    }
+  const flush = () => {
+    flushTimer = null
+    const clusters = clusterEdits(pending)
+    pending = []
+    lastClusters = clusters
+    if (clusters.length) onClusters(clusters)
   }
 
-  // ponytail: O(n²) over the window's edits. Fine at demo scale (hundreds of
-  // edits/8s); a position-indexed structure would matter at high throughput.
-  const findCandidates = () => {
-    const out = []
-    for (let i = 0; i < edits.length; i++) {
-      for (let j = i + 1; j < edits.length; j++) {
-        const a = edits[i]; const b = edits[j]
-        if (a.client === b.client) continue
-        const overlap = Math.min(a.to, b.to) - Math.max(a.from, b.from)
-        if (overlap < -TOUCH_GAP) continue
-        const key = `${a.id}:${b.id}`
-        if (seen.has(key)) continue
-        seen.add(key)
-        const from = Math.min(a.from, b.from)
-        const to = Math.max(a.to, b.to)
-        // Every in-window edit intersecting the region (all involved clients).
-        out.push({ from, to, edits: edits.filter(e => e.to >= from && e.from <= to) })
-      }
-    }
-    return out
+  const scheduleFlush = () => {
+    if (flushTimer) clearTimeout(flushTimer)
+    flushTimer = setTimeout(flush, BUFFER_MS)
+    flushTimer.unref()
   }
 
   // One transaction == one client's update (a single y-websocket message), so a
@@ -66,7 +73,7 @@ export function createCollisionTracker(doc, onCandidate) {
     const origin = tx.origin
     const cur = ytext.toString()
     if (origin == null) { prev = cur; return } // internal edits still advance the diff baseline
-    prune(); pruneSeen()
+    prune()
     if (cur === prev) return
     const client = labelOf(origin)
     let s = 0
@@ -75,12 +82,17 @@ export function createCollisionTracker(doc, onCandidate) {
     while (pe > s && ce > s && prev[pe - 1] === cur[ce - 1]) { pe--; ce-- }
     const inserted = cur.slice(s, ce)
     if (inserted.length) {
-      edits.push({ id: ++editSeq, client, from: s, to: ce, text: inserted, ts: Date.now() })
+      const edit = { id: ++editSeq, client, from: s, to: ce, text: inserted, ts: Date.now() }
+      edits.push(edit)
+      pending.push(edit)
+      scheduleFlush()
     }
     prev = cur
-    if (edits.length) onCandidate(findCandidates())
   }
 
   ytext.observe(observe)
-  return { recentEdits: () => edits }
+  return {
+    recentEdits: () => edits,
+    recentClusters: () => lastClusters,
+  }
 }
