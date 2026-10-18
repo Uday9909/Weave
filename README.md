@@ -1,5 +1,7 @@
 # Weave — Real-Time Collaborative Text Editor with Intent-Preservation Assistance
 
+![CI](https://github.com/Uday9909/Weave/actions/workflows/ci.yml/badge.svg)
+
 A real-time collaborative text editor exploring a problem that CRDT-based
 systems don't actually solve on their own: when concurrent edits touch
 overlapping text, the merge is always *conflict-free* (guaranteed by the
@@ -112,16 +114,19 @@ end to end.
 
 ## Status
 
-Phase 1 (sync skeleton), Phase 2 (presence), Phase 3 (compaction), and Phase 4
-(intent flagging) live. Two browser tabs on the same room show live edits,
-colored cursors with names, and a who's-online strip. When two users edit the
-same spot concurrently, a server-side pipeline (collision tracker → heuristic
-gate → Gemini judge) flags likely-mangled merges: a banner appears and the
-flagged range is underlined. A scheduled server job compacts tombstone growth
-and reaps idle rooms. The LLM judge needs a Gemini key in `server/.env`
+Phase 1 (sync skeleton), Phase 2 (presence), Phase 3 (compaction), Phase 4
+(intent flagging), and Phase 5 (eval harness) live, plus durable persistence
+and a Render deploy blueprint. Two browser tabs on the same room show live
+edits, colored cursors with names, and a who's-online strip. When two users
+edit the same spot concurrently, a server-side pipeline (collision tracker →
+heuristic gate → Gemini judge) flags likely-mangled merges: a banner appears
+and the flagged range is underlined. A scheduled server job compacts tombstone
+growth and reaps idle rooms. The LLM judge needs a Gemini key in `server/.env`
 (`GEMINI_API_KEY`); without it the pipeline runs heuristic-only and flags less,
 because Yjs concatenates concurrent same-position inserts rather than
 interleaving them (so the ambiguous→LLM path carries most of the signal).
+Documents are snapshotted to `server/.data` (override with `WEAVE_DATA_DIR`)
+and reloaded after a restart.
 
 ## Local development
 
@@ -133,6 +138,19 @@ cd server && npm install && npm run dev
 # client
 cd client && npm install && npm run dev
 ```
+
+## Tests and benchmarks
+
+```bash
+# server: intent selfcheck, persistence round-trip, flagging eval
+cd server && npm test
+
+# client: typecheck + production build, then the sync benchmark
+cd client && npx tsc --noEmit && npm run build
+npm run bench
+```
+
+CI runs the server suite and the client typecheck/build on every push and PR.
 
 ## Deploy (Render)
 
@@ -162,9 +180,9 @@ Other hosts: the client reads `VITE_WS_URL` (full `wss://…` URL) first, then
 4. Kill and restart only the client — the document survives (state is
    kept in memory on the server).
 
-Note: document state is in-memory on the server — there is no durable
-store yet. That is a deliberate Phase-1 boundary; the persistence
-plug-in point is marked in `server/ws/index.js`.
+Note: documents are snapshotted to `server/.data` (`WEAVE_DATA_DIR` overrides
+the path) and reloaded on restart. On hosts with ephemeral disks — Render's
+free tier, for example — snapshots do not survive a redeploy.
 
 ## License
 
