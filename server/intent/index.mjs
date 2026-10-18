@@ -12,15 +12,21 @@ export function startIntentPipeline(doc, room, emit) {
   let lastFlagAt = 0
   let lastLlmAt = 0
   let flagSeq = 0
-  return createCollisionTracker(doc, async (candidates) => {
-    for (const region of candidates) {
-      const { verdict, runs } = interleaveVerdict(region.edits)
+  return createCollisionTracker(doc, async (clusters) => {
+    for (const region of clusters) {
+      const { verdict, runs, signal } = interleaveVerdict(region.edits)
       if (verdict === 'benign') continue
       if (Date.now() - lastFlagAt < COOLDOWN_MS) break
       let flagged = verdict === 'mangled'
       let confidence = verdict === 'mangled' ? 0.9 : 0.5
+      const MANGLED_REASONS = {
+        'typing-streams': 'Two clients typed into the same region; Yjs concatenated their streams.',
+        'duplicate-text': 'Two clients inserted the same text in the same spot — duplicated in the merge.',
+        'multi-client': 'Three or more clients collided in the same spot.',
+        'interleaved-runs': 'Concurrent edits interleaved out of order.',
+      }
       let reason = verdict === 'mangled'
-        ? 'Concurrent edits interleaved out of order.'
+        ? MANGLED_REASONS[signal] ?? 'Concurrent edits landed in the same spot.'
         : 'Concurrent edits landed in the same spot — intent may be mangled.'
       if (verdict === 'ambiguous') {
         if (Date.now() - lastLlmAt < LLM_COOLDOWN_MS) continue

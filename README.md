@@ -100,17 +100,21 @@ end to end.
 - Intent-flagging precision/recall on the scripted test scenario set (12
   human-labeled scenarios in `server/intent/eval.mjs`, replayed through the
   real pipeline; run with `npm run eval` / `npm run eval:llm`):
-  - **Heuristic-only:** flags nothing (recall 0.0, zero false positives).
-    Yjs concatenates concurrent same-spot inserts, so every collision
-    collapses to two runs and the heuristic's `mangled` path (needs 4+
-    alternating runs) never fires on a real merge. The `ambiguous → LLM`
-    step is not optional decoration — it carries the entire signal.
+  - **Heuristic-only:** precision 1.000, recall 0.571, F1 0.727 — 4 of 7
+    should-flag scenarios flagged, 0 of 5 should-not-flag scenarios
+    flagged. The detector buffers a 350 ms burst, clusters edits by
+    proximity, and judges each cluster by provenance (who wrote where):
+    two typing streams in one region, duplicate non-blank text, 3+
+    colliding clients, or 4+ short alternating runs. Clustering is what
+    makes Yjs's concatenated merges visible — pairwise regions had
+    collapsed to two blocky runs, which read as benign.
   - **Heuristic + Gemini:** precision 1.000, recall 0.857, F1 0.923 — 6 of
     7 should-flag scenarios flagged, 0 of 5 should-not-flag scenarios
-    flagged. The single miss was a duplicated word the judge called
-    acceptable. Caveat: the free Gemini tier rate-limits hard; a back-to-
-    back run scored recall 0.143 because most judge calls returned HTTP
-    429. Replay is deterministic — only the external judge varies.
+    flagged. The heuristic resolves 4; the `ambiguous → LLM` step resolves
+    the two same-spot verb/adverb jams; the miss (`trailer-jam`) stayed
+    ambiguous. Caveat: the free Gemini tier rate-limits hard — this run
+    exhausted quota on the final judge call and fell back to heuristic-only
+    (fail-closed). Replay is deterministic; only the external judge varies.
 
 ## Status
 
