@@ -17,6 +17,12 @@ export function startIntentPipeline(doc, room, emit) {
       const { verdict, runs, signal } = interleaveVerdict(region.edits)
       if (verdict === 'benign') continue
       if (Date.now() - lastFlagAt < COOLDOWN_MS) break
+      // Edits record their offset at observation time, so concurrent inserts
+      // that stacked at one spot under-report the merged block. Span the
+      // combined inserted length instead — that is what Yjs placed side by side.
+      const ytext = doc.getText(TEXT_TYPE)
+      const regionFrom = Math.min(...region.edits.map(e => e.from))
+      const regionTo = Math.min(ytext.length, regionFrom + region.edits.reduce((n, e) => n + e.text.length, 0))
       let flagged = verdict === 'mangled'
       let confidence = verdict === 'mangled' ? 0.9 : 0.5
       const MANGLED_REASONS = {
@@ -31,20 +37,14 @@ export function startIntentPipeline(doc, room, emit) {
       if (verdict === 'ambiguous') {
         if (Date.now() - lastLlmAt < LLM_COOLDOWN_MS) continue
         lastLlmAt = Date.now()
-        // Slice the full concurrent block, not the diff-attributed region: Yjs
-        // places concurrent inserts side-by-side, so the block starts at the
-        // earliest edit offset and spans the combined length of all edit texts.
-        // Slicing region.from..region.to alone can capture just one client's block.
         const editTexts = [...new Set(region.edits.map(e => e.text))]
-        const ytext = doc.getText(TEXT_TYPE)
-        const blockStart = Math.min(...region.edits.map(e => e.from))
-        const mergedText = ytext.toString().slice(blockStart, Math.min(ytext.length, blockStart + editTexts.join('').length))
+        const mergedText = ytext.toString().slice(regionFrom, regionTo)
         const llm = await judgeMerge({ mergedText, editTexts })
         if (llm) { flagged = llm.flagged; confidence = llm.confidence; reason = llm.reason }
       }
       if (!flagged) continue
       lastFlagAt = Date.now()
-      emit({ id: ++flagSeq, room, region: { from: region.from, to: region.to }, confidence, reason, source: verdict === 'mangled' ? 'heuristic' : 'llm' })
+      emit({ id: ++flagSeq, room, region: { from: regionFrom, to: regionTo }, confidence, reason, source: verdict === 'mangled' ? 'heuristic' : 'llm' })
     }
   })
 }
