@@ -1,7 +1,14 @@
 import * as Y from 'yjs'
 import { WebsocketProvider } from 'y-websocket'
 
-const SERVER_URL = 'ws://localhost:1234'
+// Deploys set VITE_WS_URL (full ws:// or wss:// URL) or VITE_WS_HOST (host
+// only, upgraded to wss). Local dev falls back to the sync server's port.
+const wsProtocol = location.protocol === 'https:' ? 'wss' : 'ws'
+export const SERVER_URL =
+  import.meta.env.VITE_WS_URL ||
+  (import.meta.env.VITE_WS_HOST
+    ? `wss://${import.meta.env.VITE_WS_HOST}`
+    : `${wsProtocol}://${location.hostname}:1234`)
 // Room id comes from ?room=<id>; all tabs sharing it sync to the same document.
 export const ROOM = new URLSearchParams(window.location.search).get('room') ?? 'weave-demo'
 

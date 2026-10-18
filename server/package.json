@@ -6,6 +6,7 @@
   "description": "Weave sync server — y-websocket relay",
   "scripts": {
     "dev": "node ws/index.js",
+    "start": "node ws/index.js",
     "intent": "node intent/selfcheck.mjs",
     "selfcheck:persistence": "node persistence/selfcheck.mjs",
     "test": "npm run intent && npm run selfcheck:persistence && npm run eval",

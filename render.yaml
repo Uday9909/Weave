@@ -1,0 +1,34 @@
+# Render blueprint: sync server (WebSocket web service) + client static site.
+# Connect the repo in Render and it provisions both. Set GEMINI_API_KEY in the
+# dashboard afterwards for LLM-assisted flagging (heuristic-only without it).
+services:
+  - type: web
+    name: weave-server
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm ci
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: GEMINI_API_KEY
+        sync: false
+      # Snapshot dir is local to the instance. Free-tier disks are ephemeral,
+      # so docs survive process restarts but not redeploys; attach a persistent
+      # disk (paid) and point WEAVE_DATA_DIR at it for durable hosting.
+      - key: WEAVE_DATA_DIR
+        value: /opt/render/project/src/server/.data
+
+  - type: web
+    name: weave-client
+    runtime: static
+    rootDir: client
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_WS_HOST
+        fromService:
+          type: web
+          name: weave-server
+          property: host

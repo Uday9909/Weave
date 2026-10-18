@@ -1,13 +1,13 @@
 // Lightweight JSON channel for flags. Kept separate from the y-websocket sync
 // socket so the provider's message handling stays untouched.
 import { flagsStore, type Flag } from './flagsStore'
-import { ROOM } from '../lib/collab'
+import { ROOM, SERVER_URL } from '../lib/collab'
 
 export function connectFlags() {
   let ws: WebSocket | null = null
   let retry = 0
   const open = () => {
-    ws = new WebSocket(`ws://${location.hostname}:1234/flags/${ROOM}`)
+    ws = new WebSocket(`${SERVER_URL}/flags/${ROOM}`)
     ws.onmessage = (ev) => {
       try {
         flagsStore.add(JSON.parse(ev.data) as Flag)

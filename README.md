@@ -134,6 +134,26 @@ cd server && npm install && npm run dev
 cd client && npm install && npm run dev
 ```
 
+## Deploy (Render)
+
+`render.yaml` provisions two services: `weave-server` (Node web service with
+WebSocket support) and `weave-client` (static Vite build).
+
+1. In Render: **New → Blueprint**, connect this repo; it reads `render.yaml`.
+2. After the first deploy, set `GEMINI_API_KEY` on `weave-server`
+   (Dashboard → Environment) to enable LLM-assisted flagging. Without it the
+   pipeline runs heuristic-only.
+3. Open the `weave-client` URL. `VITE_WS_HOST` is wired from the server's host
+   automatically, and the client upgrades it to `wss://`.
+
+The free tier's disk is ephemeral: snapshots survive process restarts but not
+redeploys. For durable hosting, attach a persistent disk to `weave-server`
+and point `WEAVE_DATA_DIR` at it.
+
+Other hosts: the client reads `VITE_WS_URL` (full `wss://…` URL) first, then
+`VITE_WS_HOST` (host only), and otherwise falls back to
+`ws://<location.hostname>:1234` for local development.
+
 ## Phase 1 — verify
 
 1. Open `http://localhost:5173/?room=demo` in **two** tabs (any room id works).
