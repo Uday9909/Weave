@@ -27,8 +27,8 @@ services:
     buildCommand: npm ci && npm run build
     staticPublishPath: dist
     envVars:
+      # fromService.host resolves to the short private hostname
+      # ("weave-server-f6f0"), which the browser can't resolve. Vite needs the
+      # public hostname, including the .onrender.com suffix.
       - key: VITE_WS_HOST
-        fromService:
-          type: web
-          name: weave-server
-          property: host
+        value: weave-server-f6f0.onrender.com
