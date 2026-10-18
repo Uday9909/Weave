@@ -55,9 +55,10 @@ function record (line) {
 }
 
 /**
- * Start the periodic compaction + idle-reaping job. Docs are reaped (state
- * lost — this server has no durable store yet) after IDLE_TIMEOUT_MIN with
- * zero connections, which is what actually bounds unbounded growth.
+ * Start the periodic compaction + idle-reaping job. Reaping frees a room's
+ * in-memory state after IDLE_TIMEOUT_MIN with zero connections, bounding
+ * unbounded growth; with file persistence enabled the room reloads from disk
+ * on its next connection.
  * @returns {() => void} stop the job
  */
 export function startCompactionJob () {

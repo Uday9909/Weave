@@ -7,6 +7,8 @@
   "scripts": {
     "dev": "node ws/index.js",
     "intent": "node intent/selfcheck.mjs",
+    "selfcheck:persistence": "node persistence/selfcheck.mjs",
+    "test": "npm run intent && npm run selfcheck:persistence && npm run eval",
     "eval": "node intent/eval.mjs",
     "eval:llm": "node intent/eval.mjs --llm"
   },
