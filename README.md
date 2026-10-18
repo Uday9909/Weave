@@ -2,6 +2,10 @@
 
 ![CI](https://github.com/Uday9909/Weave/actions/workflows/ci.yml/badge.svg)
 
+**Live demo:** https://weave-client.onrender.com/?room=demo — open it in two
+tabs, type in both, and the merge flagging appears. (Free tier: the first
+load may take ~30 s while the services wake.)
+
 A real-time collaborative text editor exploring a problem that CRDT-based
 systems don't actually solve on their own: when concurrent edits touch
 overlapping text, the merge is always *conflict-free* (guaranteed by the
